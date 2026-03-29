@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "BoostedScript",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Write userscripts with an LLM assistant in a side panel. Scripts stay local and are scoped per site.",
   "browser_specific_settings": {
     "gecko": {
@@ -9,10 +9,20 @@
       "strict_min_version": "115.0"
     }
   },
-  "permissions": ["storage", "tabs", "activeTab", "scripting", "webRequest"],
-  "host_permissions": ["<all_urls>"],
+  "permissions": [
+    "storage",
+    "tabs",
+    "activeTab",
+    "scripting",
+    "webRequest"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
   "background": {
-    "scripts": ["background.js"]
+    "scripts": [
+      "background.js"
+    ]
   },
   "sidebar_action": {
     "default_title": "BoostedScript",
@@ -33,8 +43,12 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["content_scripts/runner.js"],
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content_scripts/runner.js"
+      ],
       "run_at": "document_idle",
       "all_frames": false
     }
