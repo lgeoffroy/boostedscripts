@@ -244,7 +244,8 @@
       if (m.index > last) {
         const md = document.createElement("div");
         md.className = "msg-md";
-        md.innerHTML = parseMarkdown(s.slice(last, m.index));
+        const parsed = new DOMParser().parseFromString(parseMarkdown(s.slice(last, m.index)), "text/html");
+        md.append(...parsed.body.childNodes);
         container.appendChild(md);
       }
       const pre = document.createElement("pre");
@@ -258,7 +259,8 @@
     if (last < s.length) {
       const md = document.createElement("div");
       md.className = "msg-md";
-      md.innerHTML = parseMarkdown(s.slice(last));
+      const parsed = new DOMParser().parseFromString(parseMarkdown(s.slice(last)), "text/html");
+      md.append(...parsed.body.childNodes);
       container.appendChild(md);
     }
   }
@@ -299,7 +301,7 @@
 
     el.domainLabel.textContent = ctx.hostname || "—";
     const sel = el.scriptSelect;
-    sel.innerHTML = "";
+    sel.replaceChildren();
     for (const s of ctx.scripts || []) {
       const opt = document.createElement("option");
       opt.value = s.id;
@@ -552,7 +554,7 @@
     div.className = "bubble assistant streaming";
     const dots = document.createElement("span");
     dots.className = "typing-dots";
-    dots.innerHTML = "<span></span><span></span><span></span>";
+    dots.append(document.createElement("span"), document.createElement("span"), document.createElement("span"));
     div.appendChild(dots);
     el.chatLog.appendChild(div);
     el.chatLog.scrollTop = el.chatLog.scrollHeight;
