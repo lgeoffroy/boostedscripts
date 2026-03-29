@@ -1,0 +1,89 @@
+:root {
+  --bg: #0f1114;
+  --surface: #161a20;
+  --border: #2a313d;
+  --text: #e8eaed;
+  --muted: #8b939e;
+  --accent: #3b82f6;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  padding: 24px;
+  max-width: 720px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, sans-serif;
+  line-height: 1.5;
+}
+h1 {
+  font-size: 1.25rem;
+  margin: 0 0 8px;
+}
+p {
+  color: var(--muted);
+  margin: 0 0 20px;
+  font-size: 14px;
+}
+label {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  margin: 12px 0 4px;
+}
+input,
+select,
+textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+textarea {
+  min-height: 88px;
+  resize: vertical;
+}
+.row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.row > * {
+  flex: 1 1 200px;
+}
+button {
+  margin-top: 16px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+button:hover {
+  filter: brightness(1.06);
+}
+.note {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 16px;
+}
+.ok {
+  color: #4ade80;
+  font-size: 13px;
+  margin-top: 10px;
+  min-height: 1.2em;
+}
+section {
+  margin-bottom: 20px;
+}
+h2 {
+  font-size: 1rem;
+  margin: 24px 0 8px;
+}

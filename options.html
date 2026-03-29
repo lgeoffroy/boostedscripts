@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BoostedScript settings</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <h1>BoostedScript settings</h1>
+    <p>
+      Choose a provider. The free path is <strong>Ollama</strong> on your machine (no cloud key). For hosted APIs,
+      paste a key from OpenAI, Anthropic, Groq, OpenRouter, or any OpenAI-compatible endpoint.
+    </p>
+
+    <section>
+      <label for="provider">Provider</label>
+      <select id="provider">
+        <option value="ollama">Ollama (local, free)</option>
+        <option value="openai-compatible">OpenAI-compatible API</option>
+        <option value="anthropic">Anthropic (Claude)</option>
+      </select>
+    </section>
+
+    <div id="panelOllama">
+      <h2>Ollama</h2>
+      <p class="note">Install from <a href="https://ollama.com" target="_blank" rel="noreferrer">ollama.com</a>, run
+        <code>ollama pull llama3.2</code> (or another model), then leave the defaults or adjust below.</p>
+      <label for="ollamaBaseUrl">Base URL</label>
+      <input id="ollamaBaseUrl" type="text" autocomplete="off" />
+      <label for="ollamaModel">Model</label>
+      <input id="ollamaModel" type="text" autocomplete="off" />
+    </div>
+
+    <div id="panelOpenAI" style="display:none">
+      <h2>OpenAI-compatible</h2>
+      <p class="note">Examples: OpenAI, Groq (<code>https://api.groq.com/openai/v1</code>), OpenRouter, LM Studio.
+        Ollama’s OpenAI shim needs a base ending in <code>/v1</code>, e.g. <code>http://localhost:11434/v1</code>.</p>
+      <label for="openaiBaseUrl">Base URL</label>
+      <input id="openaiBaseUrl" type="text" autocomplete="off" />
+      <label for="openaiModel">Model</label>
+      <input id="openaiModel" type="text" autocomplete="off" />
+      <label for="openaiKey">API key (optional for some local servers)</label>
+      <input id="openaiKey" type="password" autocomplete="off" placeholder="sk-… or Groq key" />
+      <p class="note">
+        <button type="button" id="presetGroq">Use Groq preset</button>
+        <button type="button" id="presetOpenAI">Use OpenAI preset</button>
+      </p>
+    </div>
+
+    <div id="panelAnthropic" style="display:none">
+      <h2>Anthropic</h2>
+      <label for="anthropicBaseUrl">API base (optional)</label>
+      <input id="anthropicBaseUrl" type="text" autocomplete="off" placeholder="https://api.anthropic.com" />
+      <label for="anthropicModel">Model</label>
+      <input id="anthropicModel" type="text" autocomplete="off" />
+      <label for="anthropicKey">API key</label>
+      <input id="anthropicKey" type="password" autocomplete="off" />
+      <p class="note">
+        <button type="button" id="presetAnthropic">Use Anthropic preset</button>
+      </p>
+    </div>
+
+    <section>
+      <label class="check" style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 16px">
+        <input type="checkbox" id="agenticMode" style="margin-top: 4px" />
+        <span><strong>Agentic mode</strong> — when enabled in the sidebar, the model is instructed to emit a
+          <code>boostedscript</code> code block with the full script; it is applied to the editor automatically after
+          each reply.</span>
+      </label>
+      <label for="systemPrompt">System prompt (all providers)</label>
+      <textarea id="systemPrompt"></textarea>
+    </section>
+
+    <button type="button" id="save">Save</button>
+    <div class="ok" id="status"></div>
+    <script src="options.js"></script>
+  </body>
+</html>

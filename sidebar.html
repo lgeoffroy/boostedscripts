@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BoostedScript</title>
+    <link rel="stylesheet" href="sidebar.css" />
+    <link rel="stylesheet" href="modules/codemirror.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-row">
+        <span class="logo">BoostedScript</span>
+        <div class="panel-mode" id="panelModeWrap">
+          <button type="button" class="btn btn-compact" id="btnOpenWindow" title="Open BoostedScript in a separate window">
+            Window
+          </button>
+        </div>
+        <span class="domain" id="domainLabel" title="Scripts are stored per hostname">—</span>
+        <a class="link" id="openSettings" href="#">Settings</a>
+      </div>
+      <div class="toolbar">
+        <label class="field">
+          <span class="field-label">Script</span>
+          <select id="scriptSelect"></select>
+        </label>
+        <input type="text" id="scriptName" class="script-name-input" placeholder="Script name" />
+        <button type="button" class="btn" id="btnNew">New</button>
+        <button type="button" class="btn btn-danger" id="btnDelete">Remove</button>
+        <label class="check">
+          <input type="checkbox" id="enabledToggle" checked />
+          <span>Enabled on this site</span>
+        </label>
+        <span class="spacer"></span>
+        <button type="button" class="btn primary" id="btnSave">Save</button>
+      </div>
+    </header>
+
+    <main class="main">
+      <section class="pane pane-code" id="paneCode">
+        <div class="pane-head">
+          <span>Userscript</span>
+          <span class="hint">Injected into the page · shares the page’s JS realm</span>
+        </div>
+        <textarea id="editor" class="editor" spellcheck="false" wrap="off"></textarea>
+      </section>
+      <div class="gutter" id="gutter" title="Drag to resize"></div>
+      <section class="pane pane-chat" id="paneChat">
+        <div class="pane-head">
+          <span>LLM</span>
+          <div class="pane-head-right">
+            <button type="button" class="btn btn-compact" id="btnNewChat" title="Clear messages; next send includes fresh DOM + script">
+              New chat
+            </button>
+            <span class="hint" id="providerHint">Configure provider in Settings</span>
+          </div>
+        </div>
+        <div class="chat-log" id="chatLog" aria-live="polite"></div>
+        <div class="chat-compose">
+          <textarea id="chatInput" rows="3" placeholder="Ask for changes… (Enter to send · Shift+Enter for new line)"></textarea>
+          <div class="chat-actions-bar">
+            <label class="check agentic-check" title="Applies boostedscript or last JS block to the editor after each reply">
+              <input type="checkbox" id="agenticToggle" />
+              <span>Agentic</span>
+            </label>
+            <div class="chat-actions">
+              <button type="button" class="btn" id="btnApplyLast" disabled>Apply last code block</button>
+              <button type="button" class="btn primary" id="btnSend">Send</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+    <script src="modules/codemirror.js"></script>
+    <script src="modules/javascript.js"></script>
+    <script src="modules/purify.js"></script>
+    <script src="sidebar.js"></script>
+  </body>
+</html>
