@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "BoostedScript",
+  "name": "BoostedScripts",
   "version": "0.1.0",
   "description": "Write userscripts with an LLM assistant in a side panel. Scripts stay local and are scoped per site.",
   "browser_specific_settings": {
@@ -34,12 +34,12 @@
     ]
   },
   "sidebar_action": {
-    "default_title": "BoostedScript",
+    "default_title": "BoostedScripts",
     "default_panel": "sidebar.html",
     "default_icon": "icons/icon.svg"
   },
   "action": {
-    "default_title": "Open BoostedScript in a window",
+    "default_title": "Open BoostedScripts in a window",
     "default_icon": "icons/icon.svg"
   },
   "options_ui": {

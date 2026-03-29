@@ -1,4 +1,4 @@
-# BoostedScript
+# BoostedScripts
 
 A Firefox browser extension that lets you write, manage, and run JavaScript userscripts on any website — with an LLM assistant built right into the sidebar.
 
@@ -85,12 +85,12 @@ When agentic mode is enabled, the LLM is instructed to wrap code it wants to app
 
 ### From XPI (Firefox)
 
-1. Download `boostedscript.xpi` from the releases section
+1. Download the `.xpi` file from the releases section
 2. Open Firefox and go to `about:addons`
 3. Click the gear icon → **Install Add-on From File...**
 4. Select the downloaded `.xpi` file
 
-> **Note**: Firefox may warn you that the extension is unsigned. This is expected for self-distributed extensions. Click **Add** to proceed.
+> **Note**: The extension is currently under review, the release is unsigned for the moment.
 
 ### Load Unpacked (Development)
 
@@ -105,11 +105,11 @@ When agentic mode is enabled, the LLM is instructed to wrap code it wants to app
 
 ### 1. Open the Extension
 
-Click the BoostedScript icon in the toolbar. This opens the sidebar panel.
+Click the BoostedScripts icon in the toolbar. This opens the sidebar panel.
 
 ### 2. Configure Your LLM Provider
 
-Click the **Settings** (⚙) link in the sidebar toolbar or go to `about:addons` → BoostedScript → Preferences.
+Click the **Settings** (⚙) link in the sidebar toolbar or go to `about:addons` → BoostedScripts → Preferences.
 
 | Provider | What You Need |
 |----------|--------------|
