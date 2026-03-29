@@ -8,8 +8,13 @@
       "id": "boostedscripts@boostedscripts.local",
       "strict_min_version": "149.0",
       "data_collection_permissions": {
-        "required": ["browsingActivity", "websiteContent"],
-        "optional": ["authenticationInfo"]
+        "required": [
+          "browsingActivity",
+          "websiteContent"
+        ],
+        "optional": [
+          "authenticationInfo"
+        ]
       }
     }
   },
