@@ -23,6 +23,9 @@
     btnNew: document.getElementById("btnNew"),
     btnDelete: document.getElementById("btnDelete"),
     btnSave: document.getElementById("btnSave"),
+    btnSaveName: document.getElementById("btnSaveName"),
+    btnDiscard: document.getElementById("btnDiscard"),
+    unsavedIndicator: document.getElementById("unsavedIndicator"),
     chatLog: document.getElementById("chatLog"),
     chatInput: document.getElementById("chatInput"),
     btnSend: document.getElementById("btnSend"),
@@ -39,14 +42,17 @@
   let ctx = { hostname: "", scripts: [], activeId: null };
   let currentScript = null;
   const chatByTab = {};
-  let saveTimer = null;
+  let isDirty = false;
   let cm = null;
+  let myWindowId = null;
+  let loadingEditor = false;
+  let llmAutosave = true;
 
   function getEditorValue() {
     return cm ? cm.getValue() : (el.editor ? el.editor.value : "");
   }
   function setEditorValue(v) {
-    if (cm) { cm.setValue(v); cm.clearHistory(); }
+    if (cm) { loadingEditor = true; cm.setValue(v); cm.clearHistory(); loadingEditor = false; }
     else if (el.editor) el.editor.value = v;
   }
   function isEditorReadOnly() {
@@ -55,6 +61,12 @@
   function setEditorReadOnly(ro) {
     if (cm) cm.setOption("readOnly", ro ? "nocursor" : false);
     else if (el.editor) el.editor.readOnly = ro;
+  }
+
+  function setDirty(val) {
+    isDirty = val;
+    if (el.unsavedIndicator) el.unsavedIndicator.hidden = !val;
+    if (el.btnDiscard) el.btnDiscard.hidden = !val;
   }
 
   function tabKey() {
@@ -73,12 +85,9 @@
   async function switchToWindow() {
     if (isWindowMode()) return;
     try {
-      await global.windows.create({
-        url: global.runtime.getURL("sidebar.html?detach=1"),
-        type: "popup",
-        width: 980,
-        height: 820,
-      });
+      const win = await global.windows.getCurrent();
+      const url = global.runtime.getURL(`sidebar.html?detach=1&windowId=${win.id}`);
+      await global.windows.create({ url, type: "popup", width: 980, height: 820 });
     } catch (e) {
       console.error("[BoostedScript]", e);
     }
@@ -281,7 +290,7 @@
   }
 
   async function refreshContext() {
-    const res = await global.runtime.sendMessage({ type: "GET_CONTEXT" });
+    const res = await global.runtime.sendMessage({ type: "GET_CONTEXT", windowId: myWindowId });
     if (!res?.ok) return;
     ctx = res;
 
@@ -315,6 +324,7 @@
     currentScript = active;
     setEditorValue(active?.code || "");
     setEditorReadOnly(!active);
+    setDirty(false);
     el.scriptName.value = active?.name || "";
     el.scriptName.disabled = !active;
     el.enabledToggle.checked = active ? active.enabled !== false : true;
@@ -342,13 +352,6 @@
     }
   }
 
-  function scheduleSave() {
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => {
-      void persistScript();
-    }, 450);
-  }
-
   async function persistScript() {
     if (!currentScript || !ctx.hostname) return;
     if (isEditorReadOnly()) return;
@@ -364,30 +367,15 @@
       script: next,
     });
     currentScript = next;
+    setDirty(false);
     await global.runtime.sendMessage({
       type: "BROADCAST_RERUN",
       hostname: ctx.hostname,
     });
   }
 
-  async function flushSaveBeforeSwitch() {
-    clearTimeout(saveTimer);
-    if (!currentScript || !ctx.hostname || isEditorReadOnly()) return;
-    const code = getEditorValue();
-    await global.runtime.sendMessage({
-      type: "SAVE_SCRIPT",
-      hostname: ctx.hostname,
-      script: {
-        ...currentScript,
-        code,
-        enabled: el.enabledToggle.checked,
-      },
-    });
-  }
-
   async function selectScript(id) {
     if (!id) return;
-    await flushSaveBeforeSwitch();
     await global.runtime.sendMessage({
       type: "SET_ACTIVE_SCRIPT",
       hostname: ctx.hostname,
@@ -413,7 +401,6 @@
   }
 
   async function newScript() {
-    await flushSaveBeforeSwitch();
     const n = (ctx.scripts?.length || 0) + 1;
     const script = {
       id: genId(),
@@ -504,7 +491,8 @@
       el.btnApplyLast.disabled = !tab.lastExtractedCode;
       if (agentic && tab.lastExtractedCode && !isEditorReadOnly()) {
         setEditorValue(tab.lastExtractedCode);
-        void persistScript();
+        if (llmAutosave) void persistScript();
+        else setDirty(true);
       }
     } catch (e) {
       streamBubble.classList.remove("streaming");
@@ -588,13 +576,14 @@
     const code = tabState().lastExtractedCode;
     if (!code) return;
     setEditorValue(code);
-    void persistScript();
+    if (llmAutosave) void persistScript();
+    else setDirty(true);
   }
 
   function initEditor() {
     if (typeof CodeMirror === "undefined") {
       // Fallback: plain textarea with basic tab support via execCommand
-      el.editor.addEventListener("input", () => scheduleSave());
+      el.editor.addEventListener("input", () => setDirty(true));
       el.editor.addEventListener("keydown", (e) => {
         if (e.key === "Tab") {
           e.preventDefault();
@@ -602,7 +591,7 @@
           const v = el.editor.value;
           el.editor.value = v.slice(0, s) + "  " + v.slice(el.editor.selectionEnd);
           el.editor.selectionStart = el.editor.selectionEnd = s + 2;
-          scheduleSave();
+          setDirty(true);
         }
         if (e.key === "s" && (e.ctrlKey || e.metaKey)) {
           e.preventDefault();
@@ -637,7 +626,7 @@
         },
       },
     });
-    cm.on("change", () => scheduleSave());
+    cm.on("change", () => { if (!loadingEditor) setDirty(true); });
   }
 
   function initSplitter() {
@@ -664,14 +653,15 @@
   el.scriptSelect.addEventListener("change", () => {
     void selectScript(el.scriptSelect.value);
   });
-  el.scriptName.addEventListener("blur", () => void renameScript());
   el.scriptName.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") el.scriptName.blur();
+    if (e.key === "Enter") { e.preventDefault(); void renameScript(); }
     if (e.key === "Escape") { el.scriptName.value = currentScript?.name || ""; el.scriptName.blur(); }
   });
+  el.btnSaveName.addEventListener("click", () => void renameScript());
   el.btnNew.addEventListener("click", () => void newScript());
   el.btnDelete.addEventListener("click", () => void deleteScript());
   el.btnSave.addEventListener("click", () => void persistScript());
+  el.btnDiscard.addEventListener("click", () => void refreshContext());
   el.enabledToggle.addEventListener("change", () => void persistScript());
   el.btnSend.addEventListener("click", () => void sendChat());
   document.getElementById("btnNewChat")?.addEventListener("click", () => {
@@ -689,15 +679,21 @@
     }
   });
 
-  global.tabs?.onActivated?.addListener(() => void refreshContext());
-  global.tabs?.onUpdated?.addListener((id, info) => {
-    if (info.status === "complete") void refreshContext();
+  global.tabs?.onActivated?.addListener((info) => {
+    if (myWindowId != null && info.windowId !== myWindowId) return;
+    void refreshContext();
+  });
+  global.tabs?.onUpdated?.addListener((id, info, tab) => {
+    if (info.status !== "complete") return;
+    if (myWindowId != null && tab?.windowId !== myWindowId) return;
+    void refreshContext();
   });
 
   async function initAgenticToggle() {
     const res = await global.runtime.sendMessage({ type: "GET_SETTINGS" });
-    if (res?.ok && el.agenticToggle) {
-      el.agenticToggle.checked = !!res.settings.agenticMode;
+    if (res?.ok) {
+      if (el.agenticToggle) el.agenticToggle.checked = !!res.settings.agenticMode;
+      llmAutosave = !!res.settings.llmAutosave;
     }
     el.agenticToggle?.addEventListener("change", async () => {
       await global.runtime.sendMessage({
@@ -706,9 +702,10 @@
       });
     });
     global.storage?.onChanged?.addListener((changes, area) => {
-      if (area !== "local" || !changes.settings?.newValue || !el.agenticToggle) return;
-      const m = changes.settings.newValue.agenticMode;
-      if (typeof m === "boolean") el.agenticToggle.checked = m;
+      if (area !== "local" || !changes.settings?.newValue) return;
+      const s = changes.settings.newValue;
+      if (el.agenticToggle && typeof s.agenticMode === "boolean") el.agenticToggle.checked = s.agenticMode;
+      if (typeof s.llmAutosave === "boolean") llmAutosave = s.llmAutosave;
     });
   }
 
@@ -719,5 +716,19 @@
   const openSettings = document.getElementById("openSettings");
   if (openSettings) openSettings.href = global.runtime.getURL("options.html");
 
-  void refreshContext();
+  async function init() {
+    if (isWindowMode()) {
+      // Detached popup: the opener passed its windowId as a URL param so we
+      // stay scoped to the same browser window.
+      const wid = parseInt(new URLSearchParams(window.location.search).get("windowId"), 10);
+      if (!isNaN(wid)) myWindowId = wid;
+    } else {
+      try {
+        const win = await global.windows?.getCurrent?.();
+        if (win?.id != null) myWindowId = win.id;
+      } catch (_) { /* windows API unavailable — fall back to global context */ }
+    }
+    void refreshContext();
+  }
+  void init();
 })();

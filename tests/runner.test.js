@@ -43,6 +43,48 @@ afterEach(() => {
   delete globalThis.browser;
 });
 
+describe("runner.js — DOM ready guard", () => {
+  it("runs immediately when readyState is not 'loading'", async () => {
+    // jsdom default is 'complete' — runner should call loadAndRun right away
+    expect(document.readyState).not.toBe("loading");
+    const { browserMock } = makeBrowserMock({
+      scripts: { localhost: [{ id: "s1", name: "T", code: "1;", enabled: true }] },
+    });
+    loadRunner(browserMock);
+    await flush();
+    expect(browserMock.storage.local.get).toHaveBeenCalledWith("scripts");
+  });
+
+  it("defers execution until DOMContentLoaded when readyState is 'loading'", async () => {
+    Object.defineProperty(document, "readyState", { value: "loading", configurable: true });
+    const listeners = {};
+    const origAdd = document.addEventListener.bind(document);
+    vi.spyOn(document, "addEventListener").mockImplementation((type, fn, ...rest) => {
+      if (type === "DOMContentLoaded") listeners[type] = fn;
+      else origAdd(type, fn, ...rest);
+    });
+
+    const { browserMock } = makeBrowserMock({
+      scripts: { localhost: [{ id: "s1", name: "T", code: "1;", enabled: true }] },
+    });
+    loadRunner(browserMock);
+    await flush();
+
+    // Should not have run yet
+    expect(browserMock.storage.local.get).not.toHaveBeenCalled();
+
+    // Fire the deferred event
+    Object.defineProperty(document, "readyState", { value: "interactive", configurable: true });
+    listeners["DOMContentLoaded"]();
+    await flush();
+
+    expect(browserMock.storage.local.get).toHaveBeenCalledWith("scripts");
+
+    document.addEventListener.mockRestore();
+    Object.defineProperty(document, "readyState", { value: "complete", configurable: true });
+  });
+});
+
 describe("runner.js — script injection", () => {
   it("does nothing when there are no scripts for the hostname", async () => {
     const { browserMock } = makeBrowserMock({ scripts: {} });
@@ -137,6 +179,82 @@ describe("runner.js — script injection", () => {
       ([el]) => el instanceof HTMLScriptElement
     );
     expect(scriptCalls).toHaveLength(2);
+
+    appendSpy.mockRestore();
+  });
+});
+
+describe("runner.js — CSP nonce propagation", () => {
+  it("copies the nonce from an existing page script to the injected script element", async () => {
+    const appendSpy = vi.spyOn(Element.prototype, "appendChild");
+
+    // Simulate a page that already has a nonced script (e.g. Instagram)
+    const pageScript = document.createElement("script");
+    pageScript.setAttribute("nonce", "bd8c220a9a8ee236ea216c8775d29c60");
+    document.head.appendChild(pageScript);
+
+    const { browserMock } = makeBrowserMock({
+      scripts: {
+        localhost: [{ id: "s1", name: "N", code: "1;", enabled: true }],
+      },
+    });
+    loadRunner(browserMock);
+    await flush();
+
+    const scriptCalls = appendSpy.mock.calls.filter(
+      ([el]) => el instanceof HTMLScriptElement && el.dataset.boostedscript
+    );
+    expect(scriptCalls.length).toBeGreaterThanOrEqual(1);
+    expect(scriptCalls[0][0].nonce).toBe("bd8c220a9a8ee236ea216c8775d29c60");
+
+    appendSpy.mockRestore();
+  });
+
+  it("reads the nonce from the IDL property even when the content attribute has been stripped (browser nonce concealment)", async () => {
+    const appendSpy = vi.spyOn(Element.prototype, "appendChild");
+
+    // Browsers strip the nonce content attribute to "" after parsing to prevent
+    // CSS-selector leaks, but keep the value accessible via the .nonce IDL property.
+    const pageScript = document.createElement("script");
+    pageScript.setAttribute("nonce", ""); // content attribute emptied by browser
+    Object.defineProperty(pageScript, "nonce", { get: () => "unquB2d0", configurable: true });
+    document.head.appendChild(pageScript);
+
+    const { browserMock } = makeBrowserMock({
+      scripts: {
+        localhost: [{ id: "s1", name: "N", code: "1;", enabled: true }],
+      },
+    });
+    loadRunner(browserMock);
+    await flush();
+
+    const scriptCalls = appendSpy.mock.calls.filter(
+      ([el]) => el instanceof HTMLScriptElement && el.dataset.boostedscript
+    );
+    expect(scriptCalls.length).toBeGreaterThanOrEqual(1);
+    // Must use the IDL property value, not the stripped attribute
+    expect(scriptCalls[0][0].nonce).toBe("unquB2d0");
+
+    appendSpy.mockRestore();
+  });
+
+  it("injects without a nonce when no nonced script exists on the page", async () => {
+    const appendSpy = vi.spyOn(Element.prototype, "appendChild");
+
+    // No page scripts with nonce — hash-based CSP or no CSP
+    const { browserMock } = makeBrowserMock({
+      scripts: {
+        localhost: [{ id: "s1", name: "N", code: "1;", enabled: true }],
+      },
+    });
+    loadRunner(browserMock);
+    await flush();
+
+    const scriptCalls = appendSpy.mock.calls.filter(
+      ([el]) => el instanceof HTMLScriptElement && el.dataset.boostedscript
+    );
+    expect(scriptCalls.length).toBeGreaterThanOrEqual(1);
+    expect(scriptCalls[0][0].nonce).toBeFalsy();
 
     appendSpy.mockRestore();
   });

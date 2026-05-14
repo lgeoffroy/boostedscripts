@@ -1,16 +1,8 @@
 /* global browser */
 
-/** Appended to system prompt when agentic mode is on (sidebar checkbox). */
-const AGENTIC_SYSTEM_SUFFIX = `
-
-You can change the userscript in the editor directly. When the user gives instructions, it's actually instructions to change the JS code of the userscript to reflect what the user wants. When you output an updated script, wrap the FULL replacement (entire file, not a diff) in a single fenced block with the language tag boostedscript exactly like this:
-\`\`\`boostedscript
-// full script here
-\`\`\`
-If you only answer questions or explain without changing code, omit the boostedscript block. If you change code, always include the complete script in that block. This is always the full userscript so you should always output js code.`;
-
 const DEFAULT_SETTINGS = {
   agenticMode: true,
+  llmAutosave: true,
   provider: "ollama",
   openaiBaseUrl: "https://api.openai.com/v1",
   openaiModel: "gpt-4o-mini",
@@ -21,7 +13,9 @@ const DEFAULT_SETTINGS = {
   ollamaBaseUrl: "http://127.0.0.1:11434",
   ollamaModel: "llama3.2",
   systemPrompt:
-    "You help the user write JavaScript userscripts for web pages. The script is injected into the page and runs in the page's JavaScript context (same globals as the site). Prefer plain DOM APIs. On each new chat, the user message may include a fresh page URL, serialized HTML snapshot of the DOM, and the current editor script—treat that bundle as the ground truth for the active tab. When you output code, wrap the full script in a single markdown fenced block with language tag js or javascript. Be concise: use brief markdown (short bullets or 1–2 sentences) when describing what changed or why—avoid long essays and redundant preambles.",
+    "You help the user write JavaScript userscripts for web pages. The script is injected into the page and runs in the page's JavaScript context (same globals as the site). Prefer plain DOM APIs. On each new chat, the user message may include a fresh page URL, serialized HTML snapshot of the DOM, and the current editor script—treat that bundle as the ground truth for the active tab. When modifying an existing script, always preserve and build upon all existing features unless the user explicitly asks to remove them—never drop working functionality when adding something new. When you output code, wrap the full script in a single markdown fenced block with language tag js or javascript. Be concise: use brief markdown (short bullets or 1–2 sentences) when describing what changed or why—avoid long essays and redundant preambles.",
+  agenticPrompt:
+    "You can change the userscript in the editor directly. When the user gives instructions, it's actually instructions to change the JS code of the userscript to reflect what the user wants. When you output an updated script, wrap the FULL replacement (entire file, not a diff) in a single fenced block with the language tag boostedscript exactly like this:\n```boostedscript\n// full script here\n```\nIf you only answer questions or explain without changing code, omit the boostedscript block. If you change code, always include the complete script in that block. This is always the full userscript so you should always output js code.",
 };
 
 async function getSettings() {
@@ -61,12 +55,21 @@ async function getActiveWebTab() {
   return active.find((x) => x.url && /^https?:/i.test(x.url));
 }
 
+/** Get the active http(s) tab in a specific window (for per-panel isolation). */
+async function getActiveTabInWindow(windowId) {
+  const tabs = await browser.tabs.query({ active: true, windowId });
+  return tabs.find((x) => x.url && /^https?:/i.test(x.url)) ?? null;
+}
+
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   (async () => {
     try {
       switch (message.type) {
         case "GET_CONTEXT": {
-          const tab = await getActiveWebTab();
+          const windowId = typeof message.windowId === "number" ? message.windowId : null;
+          const tab = windowId != null
+            ? await getActiveTabInWindow(windowId)
+            : await getActiveWebTab();
           const url = tab?.url || "";
           const hostname = hostnameFromUrl(url);
           const { scripts, activeScriptByDomain } = await getScriptsStore();
@@ -287,7 +290,7 @@ async function callLlm(settings, messages) {
 
 function systemPromptWithAgentic(settings) {
   let s = settings.systemPrompt || DEFAULT_SETTINGS.systemPrompt;
-  if (settings.agenticMode) s += AGENTIC_SYSTEM_SUFFIX;
+  if (settings.agenticMode) s += "\n\n" + (settings.agenticPrompt ?? DEFAULT_SETTINGS.agenticPrompt);
   return s;
 }
 

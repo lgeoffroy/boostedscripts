@@ -62,14 +62,24 @@
     </div>
 
     <section>
-      <label class="check" style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 16px">
-        <input type="checkbox" id="agenticMode" style="margin-top: 4px" />
+      <label class="check">
+        <input type="checkbox" id="agenticMode" />
         <span><strong>Agentic mode</strong> — when enabled in the sidebar, the model is instructed to emit a
           <code>boostedscript</code> code block with the full script; it is applied to the editor automatically after
           each reply.</span>
       </label>
+      <label class="check">
+        <input type="checkbox" id="llmAutosave" />
+        <span><strong>Auto-save LLM edits</strong> — automatically save and re-run the script whenever the LLM
+          applies code to the editor (via agentic mode or "Apply last code block"). When off, edits are staged
+          and must be saved manually.</span>
+      </label>
       <label for="systemPrompt">System prompt (all providers)</label>
       <textarea id="systemPrompt"></textarea>
+      <a href="#" class="reset-link" id="resetSystemPrompt">Reset to default</a>
+      <label for="agenticPrompt">Agentic prompt suffix (appended when agentic mode is on)</label>
+      <textarea id="agenticPrompt"></textarea>
+      <a href="#" class="reset-link" id="resetAgenticPrompt">Reset to default</a>
     </section>
 
     <button type="button" id="save">Save</button>

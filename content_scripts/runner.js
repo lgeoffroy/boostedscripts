@@ -14,6 +14,11 @@
     if (label) el.dataset.boostedscript = String(label);
     el.textContent = code;
     try {
+      // Grab the nonce from an existing nonced script on the page to bypass CSP
+      const existingScript = document.querySelector('script[nonce]');
+      if (existingScript) {
+        el.nonce = existingScript.nonce; // use the .nonce property, not the attribute
+      }
       const root = document.head || document.documentElement;
       root.appendChild(el);
     } catch (e) {
@@ -33,7 +38,11 @@
     }
   }
 
-  loadAndRun();
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", loadAndRun);
+  } else {
+    loadAndRun();
+  }
 
   browser.runtime.onMessage.addListener((msg) => {
     if (msg.type === "RERUN_SCRIPTS" && msg.hostname === hostname) {

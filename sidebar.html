@@ -25,6 +25,7 @@
           <select id="scriptSelect"></select>
         </label>
         <input type="text" id="scriptName" class="script-name-input" placeholder="Script name" />
+        <button type="button" class="btn btn-compact" id="btnSaveName">Save Name</button>
         <button type="button" class="btn" id="btnNew">New</button>
         <button type="button" class="btn btn-danger" id="btnDelete">Remove</button>
         <label class="check">
@@ -32,7 +33,9 @@
           <span>Enabled on this site</span>
         </label>
         <span class="spacer"></span>
-        <button type="button" class="btn primary" id="btnSave">Save</button>
+        <span class="unsaved-indicator" id="unsavedIndicator" hidden>Unsaved changes</span>
+        <button type="button" class="btn btn-compact" id="btnDiscard" hidden>Reload saved</button>
+        <button type="button" class="btn primary" id="btnSave">Save Script</button>
       </div>
     </header>
 
